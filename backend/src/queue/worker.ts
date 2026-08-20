@@ -1,16 +1,22 @@
 import { Worker } from "bullmq";
 import { redisConnection } from "./connection";
 import { sendTestEmail } from "../services/mailer";
+import { markEmailJobSent, markEmailJobFailed } from "../db/campaignRepo";
 
 export const worker = new Worker(
   "email-queue",
   async (job) => {
+    const { emailJobId, to, subject, body } = job.data;
     console.log(`[worker] Processing job ${job.id} at ${new Date().toISOString()}`);
 
-    const { to, subject, body } = job.data;
-    await sendTestEmail(to, subject, body);
-
-    console.log(`[worker] Email sent for job ${job.id}`);
+    try {
+      await sendTestEmail(to, subject, body);
+      await markEmailJobSent(emailJobId);
+      console.log(`[worker] Email sent + DB updated for job ${job.id}`);
+    } catch (err) {
+      await markEmailJobFailed(emailJobId, String(err));
+      throw err; // let BullMQ know it failed too
+    }
   },
   { connection: redisConnection }
 );
