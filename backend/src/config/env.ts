@@ -14,4 +14,8 @@ export const env = {
   databaseUrl: required("DATABASE_URL"),
   redisHost: process.env.REDIS_HOST ?? "localhost",
   redisPort: Number(process.env.REDIS_PORT ?? 6379),
+  etherealHost: required("ETHEREAL_HOST"),
+  etherealPort: Number(process.env.ETHEREAL_PORT ?? 587),
+  etherealUser: required("ETHEREAL_USER"),
+  etherealPass: required("ETHEREAL_PASS"),
 };
