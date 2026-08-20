@@ -12,4 +12,6 @@ function required(key: string): string {
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   databaseUrl: required("DATABASE_URL"),
+  redisHost: process.env.REDIS_HOST ?? "localhost",
+  redisPort: Number(process.env.REDIS_PORT ?? 6379),
 };
