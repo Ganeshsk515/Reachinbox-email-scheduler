@@ -1,0 +1,1 @@
+Full stack email job scheduler built Typescript,Express,BullMQ,Redis and Postgres.
