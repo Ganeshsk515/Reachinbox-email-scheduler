@@ -1,5 +1,5 @@
 if (process.env.SERVICE_ROLE === "worker") {
-  import("./queue/worker");
+  require("./queue/worker");
 } else {
-  import("./server");
+  require("./server");
 }
