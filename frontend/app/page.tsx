@@ -1,19 +1,24 @@
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+"use client";
+import { useState } from "react";
+import { Sidebar } from "@/components/Sidebar";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<"scheduled" | "sent">("scheduled");
+
   return (
-    <div className="p-8 space-y-4">
-      <h1 className="text-2xl font-semibold">Design system check</h1>
-      <div className="flex gap-2">
-        <Button>Primary Button</Button>
-        <Button variant="outline">Outline Button</Button>
-      </div>
-      <div className="flex gap-2">
-        <Badge status="scheduled" />
-        <Badge status="sent" />
-        <Badge status="failed" />
-      </div>
+    <div className="flex">
+      <Sidebar
+        activeTab={activeTab}
+        scheduledCount={12}
+        sentCount={785}
+        onTabChange={setActiveTab}
+        onCompose={() => alert("compose clicked")}
+        userName="Test User"
+        userEmail="test@example.com"
+      />
+      <main className="flex-1 p-8">
+        <h1 className="text-xl font-semibold">Active tab: {activeTab}</h1>
+      </main>
     </div>
   );
 }
