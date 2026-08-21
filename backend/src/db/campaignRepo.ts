@@ -109,3 +109,11 @@ export async function getPendingEmailJobsWithCampaignInfo() {
   );
   return result.rows;
 }
+
+export async function getSenderById(id: string) {
+  const result = await pool.query(
+    `SELECT id, name, smtp_user, smtp_pass FROM senders WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0] ?? null;
+}

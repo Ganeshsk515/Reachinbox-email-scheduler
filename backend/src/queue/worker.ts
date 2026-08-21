@@ -1,11 +1,12 @@
 import { Worker } from "bullmq";
 import { redisConnection } from "./connection";
-import { sendTestEmail } from "../services/mailer";
+import { sendEmailAsSender } from "../services/mailer";
 import {
   markEmailJobSent,
   markEmailJobFailed,
   updateEmailJobBullmqId,
   getEmailJobById,
+  getSenderById,
 } from "../db/campaignRepo";
 import { tryConsumeRateLimit } from "./rateLimiter";
 import { emailQueue } from "./emailQueue";
@@ -20,10 +21,6 @@ async function startWorker() {
       const { emailJobId, senderId, to, subject, body } = job.data;
       console.log(`[worker] Processing job ${job.id} at ${new Date().toISOString()}`);
 
-      // Second idempotency layer: DB is the final source of truth.
-      // Even if this job somehow got triggered twice (e.g. a race between
-      // a rate-limit reschedule and reconciliation both re-adding it),
-      // don't send twice — trust the DB status over BullMQ's job state.
       const currentJob = await getEmailJobById(emailJobId);
       if (currentJob?.status === "sent") {
         console.log(`[worker] Job ${job.id} already marked sent in DB, skipping duplicate send.`);
@@ -51,7 +48,17 @@ async function startWorker() {
       }
 
       try {
-        await sendTestEmail(to, subject, body);
+        const sender = await getSenderById(senderId);
+        if (!sender) {
+          throw new Error(`Sender ${senderId} not found`);
+        }
+
+        await sendEmailAsSender(
+          { smtpUser: sender.smtp_user, smtpPass: sender.smtp_pass },
+          to,
+          subject,
+          body
+        );
         await markEmailJobSent(emailJobId);
         console.log(`[worker] Email sent + DB updated for job ${job.id}`);
       } catch (err) {

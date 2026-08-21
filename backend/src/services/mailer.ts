@@ -1,27 +1,63 @@
 import nodemailer from "nodemailer";
-import {env} from "../config/env";
+import { env } from "../config/env";
 
-export const transporter = nodemailer.createTransport({
+interface SenderCredentials {
+  smtpUser: string;
+  smtpPass: string;
+}
+
+// Cache transporters per sender so we don't rebuild one on every single send.
+const transporterCache = new Map<string, nodemailer.Transporter>();
+
+function getTransporterForSender(credentials: SenderCredentials): nodemailer.Transporter {
+  const cacheKey = credentials.smtpUser;
+
+  if (transporterCache.has(cacheKey)) {
+    return transporterCache.get(cacheKey)!;
+  }
+
+  const transporter = nodemailer.createTransport({
     host: env.etherealHost,
     port: env.etherealPort,
-    secure: false, // Ethereal uses STARTTLS on 587, not implicit TLS
+    secure: false,
     auth: {
-        user: env.etherealUser,
-        pass: env.etherealPass,
+      user: credentials.smtpUser,
+      pass: credentials.smtpPass,
     },
-});
+  });
 
-export async function sendTestEmail(to: string, subject: string, body: string) {
+  transporterCache.set(cacheKey, transporter);
+  return transporter;
+}
+
+export async function sendEmailAsSender(
+  credentials: SenderCredentials,
+  to: string,
+  subject: string,
+  body: string
+) {
+  const transporter = getTransporterForSender(credentials);
+
   const info = await transporter.sendMail({
     from: {
       name: "ReachInbox Scheduler",
-      address: env.etherealUser,
+      address: credentials.smtpUser,
     },
     to,
     subject,
     text: body,
   });
 
-    console.log("Message sent:", info.messageId);
-    console.log("previous URL:", nodemailer.getTestMessageUrl(info));
+  console.log("Message sent:", info.messageId);
+  console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
+}
+
+// Kept for backward compatibility with any standalone test scripts.
+export async function sendTestEmail(to: string, subject: string, body: string) {
+  return sendEmailAsSender(
+    { smtpUser: env.etherealUser, smtpPass: env.etherealPass },
+    to,
+    subject,
+    body
+  );
 }
