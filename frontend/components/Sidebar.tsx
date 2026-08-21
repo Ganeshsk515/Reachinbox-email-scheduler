@@ -1,3 +1,5 @@
+"use client";
+import { signOut } from "next-auth/react";
 import { Button } from "./ui/Button";
 
 interface SidebarProps {
@@ -23,7 +25,7 @@ export function Sidebar({
     <aside className="w-72 bg-sidebar text-sidebar-foreground flex flex-col h-screen p-4">
       <div className="text-xl font-bold mb-6 tracking-tight">ReachInbox</div>
 
-      <div className="bg-white/5 rounded-lg p-3 mb-4 flex items-center gap-3">
+      <div className="bg-white/5 rounded-lg p-3 mb-2 flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-semibold">
           {userName.charAt(0).toUpperCase()}
         </div>
@@ -32,6 +34,13 @@ export function Sidebar({
           <div className="text-xs text-sidebar-muted truncate">{userEmail}</div>
         </div>
       </div>
+
+      <button
+        onClick={() => signOut({ callbackUrl: "/login" })}
+        className="text-xs text-white/60 hover:text-white transition-colors mb-4 self-start underline underline-offset-2"
+      >
+        Logout
+      </button>
 
       <Button onClick={onCompose} className="w-full mb-6">
         Compose
