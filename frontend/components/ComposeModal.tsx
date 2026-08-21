@@ -26,18 +26,43 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
     if (!file) return;
 
     Papa.parse(file, {
+      skipEmptyLines: true,
       complete: (result) => {
-        const emails = (result.data as string[][])
+        const raw = (result.data as string[][])
           .flat()
           .map((v) => v.trim())
           .filter((v) => v.includes("@"));
+
+        // De-duplicate case-insensitively while preserving first-seen casing
+        const seen = new Set<string>();
+        const emails: string[] = [];
+        for (const email of raw) {
+          const lower = email.toLowerCase();
+          if (!seen.has(lower)) {
+            seen.add(lower);
+            emails.push(email);
+          }
+        }
+
+        if (emails.length === 0) {
+          setError("No valid email addresses found in that file.");
+        } else {
+          setError("");
+        }
+
         setRecipients(emails);
       },
+      error: () => {
+        setError("Couldn't parse that CSV file. Please check the format.");
+      },
     });
+
+    // Allow re-uploading a file with the same name after a fix
+    e.target.value = "";
   }
 
   function removeRecipient(email: string) {
-    setRecipients(recipients.filter((r) => r !== email));
+    setRecipients((prev) => prev.filter((r) => r !== email));
   }
 
   async function handleSubmit() {
@@ -107,8 +132,11 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
             <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="text-sm" />
             {recipients.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
-                {recipients.slice(0, 6).map((email) => (
-                  <span key={email} className="bg-primary-light text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                {recipients.slice(0, 6).map((email, index) => (
+                  <span
+                    key={`${email}-${index}`}
+                    className="bg-primary-light text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                  >
                     {email}
                     <button onClick={() => removeRecipient(email)} className="hover:text-primary-hover">✕</button>
                   </span>
