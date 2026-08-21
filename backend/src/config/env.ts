@@ -18,4 +18,5 @@ export const env = {
   etherealPort: Number(process.env.ETHEREAL_PORT ?? 587),
   etherealUser: required("ETHEREAL_USER"),
   etherealPass: required("ETHEREAL_PASS"),
+  maxEmailsPerHourPerSender: Number(process.env.MAX_EMAILS_PER_HOUR_PER_SENDER ?? 200),
 };

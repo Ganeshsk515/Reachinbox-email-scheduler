@@ -14,13 +14,23 @@ campaignsRouter.post("/", async (req, res) => {
       maxEmailsPerHour,
       startTime,
       createdBy,
-      recipients, // array of email strings
+      recipients,
     } = req.body;
 
-    if (!subject || !body || !senderId || !Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ error: "Missing required fields" });
+    // Validate required fields
+    if (
+      !subject ||
+      !body ||
+      !senderId ||
+      !Array.isArray(recipients) ||
+      recipients.length === 0
+    ) {
+      return res.status(400).json({
+        error: "Missing required fields",
+      });
     }
 
+    // Create campaign
     const campaignId = await createCampaign({
       subject,
       body,
@@ -32,36 +42,44 @@ campaignsRouter.post("/", async (req, res) => {
     });
 
     const start = new Date(startTime ?? Date.now()).getTime();
+    const interval = delayBetweenMs ?? 2000;
 
+    // Schedule emails
     for (let i = 0; i < recipients.length; i++) {
-      const scheduledFor = new Date(start + i * (delayBetweenMs ?? 2000));
+      const scheduledFor = new Date(start + i * interval);
 
-      const job = await createEmailJob({
+      const emailJob = await createEmailJob({
         campaignId,
         recipientEmail: recipients[i],
         scheduledFor,
       });
 
-      const delayMs = scheduledFor.getTime() - Date.now();
+      const delayMs = Math.max(scheduledFor.getTime() - Date.now(), 0);
 
       await emailQueue.add(
         "send-email",
         {
-          emailJobId: job.id,
-          to: job.recipient_email,
+          emailJobId: emailJob.id,
+          senderId, // Pass senderId to the worker
+          to: emailJob.recipient_email,
           subject,
           body,
         },
         {
-          jobId: job.id, // idempotency key — BullMQ dedupes on this
-          delay: Math.max(delayMs, 0),
+          jobId: emailJob.id,
+          delay: delayMs,
         }
       );
     }
 
-    res.status(201).json({ campaignId, emailsScheduled: recipients.length });
+    return res.status(201).json({
+      campaignId,
+      emailsScheduled: recipients.length,
+    });
   } catch (err) {
     console.error("Failed to create campaign:", err);
-    res.status(500).json({ error: "Failed to create campaign" });
+    return res.status(500).json({
+      error: "Failed to create campaign",
+    });
   }
 });
