@@ -21,25 +21,41 @@ export function Dashboard({ userName, userEmail, userImage }: DashboardProps) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    fetchEmails(activeTab)
-      .then(setJobs)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function refreshDashboard() {
+      try {
+        const [activeJobs, scheduledJobs, sentJobs] = await Promise.all([
+          fetchEmails(activeTab),
+          fetchEmails("scheduled"),
+          fetchEmails("sent"),
+        ]);
+
+        if (cancelled) return;
+
+        setJobs(activeJobs);
+        setScheduledCount(scheduledJobs.length);
+        setSentCount(sentJobs.length);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void refreshDashboard();
+    const interval = window.setInterval(refreshDashboard, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [activeTab, refreshKey]);
 
   function handleTabChange(tab: "scheduled" | "sent") {
     setLoading(true);
     setActiveTab(tab);
   }
-
-  useEffect(() => {
-    fetchEmails("scheduled")
-      .then((jobs) => setScheduledCount(jobs.length))
-      .catch(console.error);
-    fetchEmails("sent")
-      .then((jobs) => setSentCount(jobs.length))
-      .catch(console.error);
-  }, [jobs]);
 
   return (
     <div className="flex">

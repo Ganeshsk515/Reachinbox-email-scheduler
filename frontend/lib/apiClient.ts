@@ -14,7 +14,7 @@ export interface EmailJob {
 }
 
 export async function fetchEmails(status: "scheduled" | "sent" | "failed"): Promise<EmailJob[]> {
-  const res = await fetch(apiUrl(`/api/emails?status=${status}`));
+  const res = await fetch(apiUrl(`/api/emails?status=${status}&limit=1000`));
   if (!res.ok) throw new Error("Failed to fetch emails");
   const data = await res.json();
   return data.jobs;

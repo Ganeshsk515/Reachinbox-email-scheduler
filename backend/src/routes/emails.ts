@@ -7,7 +7,10 @@ export const emailsRouter = Router();
 emailsRouter.get("/", async (req, res) => {
   try {
     const status = String(req.query.status ?? "scheduled");
-    const limit = Number(req.query.limit ?? 50);
+    const requestedLimit = Number(req.query.limit ?? 1000);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(Math.floor(requestedLimit), 1), 1000)
+      : 1000;
     const offset = Number(req.query.offset ?? 0);
 
     if (!["scheduled", "sent", "failed"].includes(status)) {
