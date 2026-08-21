@@ -1,7 +1,7 @@
 import { redisConnection } from "./connection";
 import { env } from "../config/env";
 
-export async function tryConsumeRateLimit(senderId: string) {
+export async function tryConsumeRateLimit(senderId: string, requestedLimit?: number) {
   const hourBucket = new Date().toISOString().slice(0, 13);
   const key = `rate:${senderId}:${hourBucket}`;
 
@@ -11,7 +11,9 @@ export async function tryConsumeRateLimit(senderId: string) {
     await redisConnection.expire(key, 3600);
   }
 
-  if (count > env.maxEmailsPerHourPerSender) {
+  const limit = Math.min(requestedLimit ?? env.maxEmailsPerHourPerSender, env.maxEmailsPerHourPerSender);
+
+  if (count > limit) {
     return {
       allowed: false,
       retryAt: getStartOfNextHour(),

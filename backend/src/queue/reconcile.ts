@@ -36,6 +36,7 @@ export async function reconcileOnBoot(): Promise<void> {
         to: row.recipient_email,
         subject: row.subject,
         body: row.body,
+        maxEmailsPerHour: row.max_emails_per_hour,
       },
       { jobId, delay: delayMs }
     );

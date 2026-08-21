@@ -4,7 +4,7 @@ import { sendEmailAsSender } from "../services/mailer";
 import {
   markEmailJobSent,
   markEmailJobFailed,
-  updateEmailJobBullmqId,
+  rescheduleEmailJob,
   getEmailJobById,
   getSenderById,
 } from "../db/campaignRepo";
@@ -18,7 +18,7 @@ async function startWorker() {
   const worker = new Worker(
     "email-queue",
     async (job) => {
-      const { emailJobId, senderId, to, subject, body } = job.data;
+      const { emailJobId, senderId, to, subject, body, maxEmailsPerHour } = job.data;
       console.log(`[worker] Processing job ${job.id} at ${new Date().toISOString()}`);
 
       const currentJob = await getEmailJobById(emailJobId);
@@ -27,7 +27,7 @@ async function startWorker() {
         return;
       }
 
-      const { allowed, retryAt } = await tryConsumeRateLimit(senderId);
+      const { allowed, retryAt } = await tryConsumeRateLimit(senderId, maxEmailsPerHour);
 
       if (!allowed) {
         const delayMs = retryAt!.getTime() - Date.now();
@@ -42,7 +42,7 @@ async function startWorker() {
           { jobId: newJobId, delay: Math.max(delayMs, 0) }
         );
 
-        await updateEmailJobBullmqId(emailJobId, newJobId);
+        await rescheduleEmailJob(emailJobId, newJobId, retryAt!);
 
         return;
       }

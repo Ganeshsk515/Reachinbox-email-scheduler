@@ -10,6 +10,7 @@ interface SidebarProps {
   onCompose: () => void;
   userName: string;
   userEmail: string;
+  userImage?: string;
 }
 
 export function Sidebar({
@@ -20,55 +21,60 @@ export function Sidebar({
   onCompose,
   userName,
   userEmail,
+  userImage,
 }: SidebarProps) {
   return (
-    <aside className="w-72 bg-sidebar text-sidebar-foreground flex flex-col h-screen p-4">
-      <div className="text-xl font-bold mb-6 tracking-tight">ReachInbox</div>
+    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-zinc-900 bg-sidebar p-4 text-sidebar-foreground">
+      <div className="mb-6 text-2xl font-extrabold tracking-tight">ReachInbox</div>
 
-      <div className="bg-white/5 rounded-lg p-3 mb-2 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-semibold">
-          {userName.charAt(0).toUpperCase()}
-        </div>
+      <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/10 p-3">
+        {userImage ? (
+          <img src={userImage} alt="" className="h-9 w-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+        ) : (
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
+            {userName.charAt(0).toUpperCase()}
+          </div>
+        )}
         <div className="min-w-0">
           <div className="text-sm font-medium truncate">{userName}</div>
-          <div className="text-xs text-sidebar-muted truncate">{userEmail}</div>
+          <div className="truncate text-xs text-sidebar-muted">{userEmail}</div>
         </div>
       </div>
 
       <button
         onClick={() => signOut({ callbackUrl: "/login" })}
-        className="text-xs text-white/60 hover:text-white transition-colors mb-4 self-start underline underline-offset-2"
+        className="mb-4 self-start text-xs text-sidebar-muted underline underline-offset-2 transition-colors hover:text-white"
       >
         Logout
       </button>
 
-      <Button onClick={onCompose} className="w-full mb-6">
+      <Button onClick={onCompose} className="mb-6 w-full bg-primary text-white hover:bg-primary-hover">
         Compose
       </Button>
 
       <nav className="flex flex-col gap-1">
         <button
           onClick={() => onTabChange("scheduled")}
-          className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+          className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
             activeTab === "scheduled"
-              ? "bg-white/10 text-white font-medium"
+              ? "bg-white/15 text-white font-medium"
               : "text-sidebar-muted hover:bg-white/5"
           }`}
         >
           <span>Scheduled</span>
-          <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">{scheduledCount}</span>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">{scheduledCount}</span>
         </button>
 
         <button
           onClick={() => onTabChange("sent")}
-          className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+          className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
             activeTab === "sent"
-              ? "bg-white/10 text-white font-medium"
+              ? "bg-white/15 text-white font-medium"
               : "text-sidebar-muted hover:bg-white/5"
           }`}
         >
           <span>Sent</span>
-          <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">{sentCount}</span>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">{sentCount}</span>
         </button>
       </nav>
     </aside>

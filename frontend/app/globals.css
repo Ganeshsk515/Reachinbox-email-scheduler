@@ -2,35 +2,35 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #292524;
 
   /* Primary accent — indigo/violet */
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-light: #eef2ff;
+  --color-primary: #b45309;
+  --color-primary-hover: #92400e;
+  --color-primary-light: #fff1df;
 
   /* Sidebar / dark surfaces */
-  --color-sidebar: #0f0f10;
-  --color-sidebar-foreground: #e5e5e5;
-  --color-sidebar-muted: #a3a3a3;
+  --color-sidebar: #18181b;
+  --color-sidebar-foreground: #fafafa;
+  --color-sidebar-muted: #a1a1aa;
 
   /* Status semantics */
-  --color-status-scheduled: #f59e0b;
+  --color-status-scheduled: #b45309;
   --color-status-scheduled-bg: #fef3c7;
-  --color-status-sent: #10b981;
+  --color-status-sent: #047857;
   --color-status-sent-bg: #d1fae5;
-  --color-status-failed: #f43f5e;
+  --color-status-failed: #be123c;
   --color-status-failed-bg: #ffe4e6;
 
   /* Borders / neutrals */
-  --color-border: #e5e5e5;
-  --color-muted: #6b7280;
+  --color-border: #e7e1d8;
+  --color-muted: #57534e;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-manrope);
 
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);

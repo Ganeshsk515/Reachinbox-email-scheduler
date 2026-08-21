@@ -59,6 +59,7 @@ campaignsRouter.post("/", async (req, res) => {
           to: emailJob.recipient_email,
           subject,
           body,
+          maxEmailsPerHour,
         },
         {
           jobId: emailJob.id,

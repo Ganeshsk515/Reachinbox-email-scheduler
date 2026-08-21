@@ -102,7 +102,8 @@ export async function getPendingEmailJobsWithCampaignInfo() {
        ej.bullmq_job_id,
        c.subject,
        c.body,
-       c.sender_id
+       c.sender_id,
+       c.max_emails_per_hour
      FROM email_jobs ej
      JOIN campaigns c ON c.id = ej.campaign_id
      WHERE ej.status = 'scheduled'`
@@ -116,4 +117,11 @@ export async function getSenderById(id: string) {
     [id]
   );
   return result.rows[0] ?? null;
+}
+
+export async function rescheduleEmailJob(id: string, bullmqJobId: string, scheduledFor: Date) {
+  await pool.query(
+    `UPDATE email_jobs SET bullmq_job_id = $2, scheduled_for = $3 WHERE id = $1`,
+    [id, bullmqJobId, scheduledFor]
+  );
 }

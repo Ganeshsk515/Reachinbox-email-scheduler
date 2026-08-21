@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getEmailJobsByStatus } from "../db/campaignRepo";
+import { logger } from "../lib/logger";
 
 export const emailsRouter = Router();
 
