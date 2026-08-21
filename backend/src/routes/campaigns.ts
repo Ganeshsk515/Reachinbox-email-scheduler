@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createCampaign, createEmailJob } from "../db/campaignRepo";
+import { createCampaign, createEmailJob, getCampaignById } from "../db/campaignRepo";
 import { emailQueue } from "../queue/emailQueue";
 
 export const campaignsRouter = Router();
@@ -17,7 +17,6 @@ campaignsRouter.post("/", async (req, res) => {
       recipients,
     } = req.body;
 
-    // Validate required fields
     if (
       !subject ||
       !body ||
@@ -30,7 +29,6 @@ campaignsRouter.post("/", async (req, res) => {
       });
     }
 
-    // Create campaign
     const campaignId = await createCampaign({
       subject,
       body,
@@ -44,7 +42,6 @@ campaignsRouter.post("/", async (req, res) => {
     const start = new Date(startTime ?? Date.now()).getTime();
     const interval = delayBetweenMs ?? 2000;
 
-    // Schedule emails
     for (let i = 0; i < recipients.length; i++) {
       const scheduledFor = new Date(start + i * interval);
 
@@ -60,7 +57,7 @@ campaignsRouter.post("/", async (req, res) => {
         "send-email",
         {
           emailJobId: emailJob.id,
-          senderId, // Pass senderId to the worker
+          senderId,
           to: emailJob.recipient_email,
           subject,
           body,
@@ -81,5 +78,18 @@ campaignsRouter.post("/", async (req, res) => {
     return res.status(500).json({
       error: "Failed to create campaign",
     });
+  }
+});
+
+campaignsRouter.get("/:id", async (req, res) => {
+  try {
+    const campaign = await getCampaignById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: "Campaign not found" });
+    }
+    res.json(campaign);
+  } catch (err) {
+    console.error("Failed to fetch campaign:", err);
+    res.status(500).json({ error: "Failed to fetch campaign" });
   }
 });

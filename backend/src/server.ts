@@ -2,6 +2,7 @@ import express from "express";
 import { env } from "./config/env";
 import { pool } from "./db/client";
 import { campaignsRouter } from "./routes/campaigns";
+import { emailsRouter } from "./routes/emails";
 
 const app = express();
 app.use(express.json());
@@ -17,6 +18,7 @@ app.get("/health", async (_req, res) => {
 });
 
 app.use("/api/campaigns", campaignsRouter);
+app.use("/api/emails", emailsRouter);
 
 app.listen(env.port, () => {
   console.log(`Server running on http://localhost:${env.port}`);
