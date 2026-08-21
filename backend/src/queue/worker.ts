@@ -5,6 +5,7 @@ import {
   markEmailJobSent,
   markEmailJobFailed,
   updateEmailJobBullmqId,
+  getEmailJobById,
 } from "../db/campaignRepo";
 import { tryConsumeRateLimit } from "./rateLimiter";
 import { emailQueue } from "./emailQueue";
@@ -18,6 +19,16 @@ async function startWorker() {
     async (job) => {
       const { emailJobId, senderId, to, subject, body } = job.data;
       console.log(`[worker] Processing job ${job.id} at ${new Date().toISOString()}`);
+
+      // Second idempotency layer: DB is the final source of truth.
+      // Even if this job somehow got triggered twice (e.g. a race between
+      // a rate-limit reschedule and reconciliation both re-adding it),
+      // don't send twice — trust the DB status over BullMQ's job state.
+      const currentJob = await getEmailJobById(emailJobId);
+      if (currentJob?.status === "sent") {
+        console.log(`[worker] Job ${job.id} already marked sent in DB, skipping duplicate send.`);
+        return;
+      }
 
       const { allowed, retryAt } = await tryConsumeRateLimit(senderId);
 
@@ -34,10 +45,9 @@ async function startWorker() {
           { jobId: newJobId, delay: Math.max(delayMs, 0) }
         );
 
-        // Keep the DB's bullmq_job_id current so reconcileOnBoot checks the right id
         await updateEmailJobBullmqId(emailJobId, newJobId);
 
-        return; // exit cleanly, this attempt doesn't count as a failure
+        return;
       }
 
       try {
