@@ -3,6 +3,7 @@ import { useState } from "react";
 import Papa from "papaparse";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
+import { useToast } from "./ui/Toast";
 
 const SENDER_ID = "cd07bb53-c67e-4e31-8975-e3ba6d0f078c";
 const API_BASE = "http://localhost:4000";
@@ -13,63 +14,36 @@ interface ComposeModalProps {
 }
 
 export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
+  const { showToast } = useToast();
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [recipients, setRecipients] = useState<string[]>([]);
   const [delayBetweenMs, setDelayBetweenMs] = useState(2000);
   const [maxEmailsPerHour, setMaxEmailsPerHour] = useState(100);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     Papa.parse(file, {
-      skipEmptyLines: true,
       complete: (result) => {
-        const raw = (result.data as string[][])
+        const emails = (result.data as string[][])
           .flat()
           .map((v) => v.trim())
           .filter((v) => v.includes("@"));
-
-        // De-duplicate case-insensitively while preserving first-seen casing
-        const seen = new Set<string>();
-        const emails: string[] = [];
-        for (const email of raw) {
-          const lower = email.toLowerCase();
-          if (!seen.has(lower)) {
-            seen.add(lower);
-            emails.push(email);
-          }
-        }
-
-        if (emails.length === 0) {
-          setError("No valid email addresses found in that file.");
-        } else {
-          setError("");
-        }
-
         setRecipients(emails);
       },
-      error: () => {
-        setError("Couldn't parse that CSV file. Please check the format.");
-      },
     });
-
-    // Allow re-uploading a file with the same name after a fix
-    e.target.value = "";
   }
 
   function removeRecipient(email: string) {
-    setRecipients((prev) => prev.filter((r) => r !== email));
+    setRecipients(recipients.filter((r) => r !== email));
   }
 
   async function handleSubmit() {
-    setError("");
-
     if (!subject || !body || recipients.length === 0) {
-      setError("Subject, body, and at least one recipient are required.");
+      showToast("Subject, body, and at least one recipient are required.", "error");
       return;
     }
 
@@ -88,12 +62,21 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to schedule campaign");
+      const data = await res.json();
 
+      if (!res.ok) {
+        const detail = data?.details
+          ? Object.values(data.details).flat().join(", ")
+          : data?.error ?? "Failed to schedule campaign.";
+        showToast(detail, "error");
+        return;
+      }
+
+      showToast(`Scheduled ${data.emailsScheduled} email(s) successfully.`, "success");
       onScheduled();
       onClose();
     } catch (err) {
-      setError("Something went wrong scheduling this campaign.");
+      showToast("Something went wrong scheduling this campaign.", "error");
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -132,11 +115,8 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
             <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="text-sm" />
             {recipients.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
-                {recipients.slice(0, 6).map((email, index) => (
-                  <span
-                    key={`${email}-${index}`}
-                    className="bg-primary-light text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                  >
+                {recipients.slice(0, 6).map((email) => (
+                  <span key={email} className="bg-primary-light text-primary text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     {email}
                     <button onClick={() => removeRecipient(email)} className="hover:text-primary-hover">✕</button>
                   </span>
@@ -166,8 +146,6 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
               />
             </div>
           </div>
-
-          {error && <p className="text-status-failed text-sm">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
