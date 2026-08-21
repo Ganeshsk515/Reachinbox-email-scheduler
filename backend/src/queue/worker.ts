@@ -82,3 +82,12 @@ startWorker().catch((err) => {
   console.error("[worker] Failed to start:", err);
   process.exit(1);
 });
+
+async function shutdown(signal: string) {
+  console.log(`[worker] Received ${signal}, closing gracefully...`);
+  await redisConnection.quit();
+  process.exit(0);
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

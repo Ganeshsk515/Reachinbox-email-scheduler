@@ -1,49 +1,47 @@
 import { Router } from "express";
 import { createCampaign, createEmailJob, getCampaignById } from "../db/campaignRepo";
 import { emailQueue } from "../queue/emailQueue";
+import { createCampaignSchema } from "../validation/campaignSchema";
+import { logger } from "../lib/logger";
 
 export const campaignsRouter = Router();
 
 campaignsRouter.post("/", async (req, res) => {
+  const parsed = createCampaignSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Validation failed",
+      details: parsed.error.flatten().fieldErrors,
+    });
+  }
+
+  const {
+    subject,
+    body,
+    senderId,
+    delayBetweenMs,
+    maxEmailsPerHour,
+    startTime,
+    createdBy,
+    recipients,
+  } = parsed.data;
+
   try {
-    const {
+    const campaignId = await createCampaign({
       subject,
       body,
       senderId,
       delayBetweenMs,
       maxEmailsPerHour,
-      startTime,
-      createdBy,
-      recipients,
-    } = req.body;
-
-    if (
-      !subject ||
-      !body ||
-      !senderId ||
-      !Array.isArray(recipients) ||
-      recipients.length === 0
-    ) {
-      return res.status(400).json({
-        error: "Missing required fields",
-      });
-    }
-
-    const campaignId = await createCampaign({
-      subject,
-      body,
-      senderId,
-      delayBetweenMs: delayBetweenMs ?? 2000,
-      maxEmailsPerHour: maxEmailsPerHour ?? 100,
       startTime: new Date(startTime ?? Date.now()),
       createdBy: createdBy ?? "unknown",
     });
 
     const start = new Date(startTime ?? Date.now()).getTime();
-    const interval = delayBetweenMs ?? 2000;
 
     for (let i = 0; i < recipients.length; i++) {
-      const scheduledFor = new Date(start + i * interval);
+      const scheduledFor = new Date(start + i * delayBetweenMs);
 
       const emailJob = await createEmailJob({
         campaignId,
@@ -69,12 +67,14 @@ campaignsRouter.post("/", async (req, res) => {
       );
     }
 
+    logger.info(`Campaign ${campaignId} created with ${recipients.length} emails scheduled`);
+
     return res.status(201).json({
       campaignId,
       emailsScheduled: recipients.length,
     });
   } catch (err) {
-    console.error("Failed to create campaign:", err);
+    logger.error("Failed to create campaign", err);
     return res.status(500).json({
       error: "Failed to create campaign",
     });
@@ -89,7 +89,7 @@ campaignsRouter.get("/:id", async (req, res) => {
     }
     res.json(campaign);
   } catch (err) {
-    console.error("Failed to fetch campaign:", err);
+    logger.error("Failed to fetch campaign", err);
     res.status(500).json({ error: "Failed to fetch campaign" });
   }
 });

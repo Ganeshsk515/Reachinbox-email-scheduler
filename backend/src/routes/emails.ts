@@ -16,7 +16,7 @@ emailsRouter.get("/", async (req, res) => {
     const jobs = await getEmailJobsByStatus(status, limit, offset);
     res.json({ jobs });
   } catch (err) {
-    console.error("Failed to fetch email jobs:", err);
+    logger.error("Failed to fetch email jobs:", err);
     res.status(500).json({ error: "Failed to fetch email jobs" });
   }
 });
