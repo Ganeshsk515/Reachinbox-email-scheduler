@@ -9,6 +9,13 @@ interface SenderCredentials {
 // Cache transporters per sender so we don't rebuild one on every single send.
 const transporterCache = new Map<string, nodemailer.Transporter>();
 
+function smtpHost() {
+  if (!env.etherealHost) {
+    throw new Error("Missing required env var: ETHEREAL_HOST");
+  }
+  return env.etherealHost;
+}
+
 function getTransporterForSender(credentials: SenderCredentials): nodemailer.Transporter {
   const cacheKey = credentials.smtpUser;
 
@@ -17,7 +24,7 @@ function getTransporterForSender(credentials: SenderCredentials): nodemailer.Tra
   }
 
   const transporter = nodemailer.createTransport({
-    host: env.etherealHost,
+    host: smtpHost(),
     port: env.etherealPort,
     secure: false,
     auth: {
@@ -54,6 +61,10 @@ export async function sendEmailAsSender(
 
 // Kept for backward compatibility with any standalone test scripts.
 export async function sendTestEmail(to: string, subject: string, body: string) {
+  if (!env.etherealUser || !env.etherealPass) {
+    throw new Error("Missing required Ethereal credentials");
+  }
+
   return sendEmailAsSender(
     { smtpUser: env.etherealUser, smtpPass: env.etherealPass },
     to,

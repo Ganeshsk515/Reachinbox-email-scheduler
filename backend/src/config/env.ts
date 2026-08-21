@@ -15,9 +15,9 @@ export const env = {
   redisUrl: process.env.REDIS_URL,
   redisHost: process.env.REDIS_HOST ?? "localhost",
   redisPort: Number(process.env.REDIS_PORT ?? 6379),
-  etherealHost: required("ETHEREAL_HOST"),
+  etherealHost: process.env.ETHEREAL_HOST,
   etherealPort: Number(process.env.ETHEREAL_PORT ?? 587),
-  etherealUser: required("ETHEREAL_USER"),
-  etherealPass: required("ETHEREAL_PASS"),
+  etherealUser: process.env.ETHEREAL_USER,
+  etherealPass: process.env.ETHEREAL_PASS,
   maxEmailsPerHourPerSender: Number(process.env.MAX_EMAILS_PER_HOUR_PER_SENDER ?? 200),
 };
