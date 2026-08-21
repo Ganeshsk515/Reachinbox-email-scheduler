@@ -1,3 +1,4 @@
+import cors from "cors";
 import express from "express";
 import { env } from "./config/env";
 import { pool } from "./db/client";
@@ -5,6 +6,7 @@ import { campaignsRouter } from "./routes/campaigns";
 import { emailsRouter } from "./routes/emails";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 app.get("/health", async (_req, res) => {
