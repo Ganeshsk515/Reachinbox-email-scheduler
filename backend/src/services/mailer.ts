@@ -27,6 +27,9 @@ function getTransporterForSender(credentials: SenderCredentials): nodemailer.Tra
     host: smtpHost(),
     port: env.etherealPort,
     secure: false,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
     auth: {
       user: credentials.smtpUser,
       pass: credentials.smtpPass,
