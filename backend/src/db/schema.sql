@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- One row per sender identity (used for per-sender rate limiting)
-CREATE TABLE senders (
+CREATE TABLE IF NOT EXISTS senders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   smtp_user TEXT NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE senders (
 );
 
 -- One row per campaign/batch (the "compose" action)
-CREATE TABLE campaigns (
+CREATE TABLE IF NOT EXISTS campaigns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   subject TEXT NOT NULL,
   body TEXT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE campaigns (
 );
 
 -- One row PER EMAIL — this is the source of truth for scheduling + idempotency
-CREATE TABLE email_jobs (
+CREATE TABLE IF NOT EXISTS email_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id UUID REFERENCES campaigns(id),
   recipient_email TEXT NOT NULL,
@@ -38,5 +38,5 @@ CREATE TABLE email_jobs (
   UNIQUE (campaign_id, recipient_email)
 );
 
-CREATE INDEX idx_email_jobs_status ON email_jobs(status);
-CREATE INDEX idx_email_jobs_scheduled_for ON email_jobs(scheduled_for);
+CREATE INDEX IF NOT EXISTS idx_email_jobs_status ON email_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_email_jobs_scheduled_for ON email_jobs(scheduled_for);
