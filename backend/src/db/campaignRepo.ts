@@ -119,6 +119,19 @@ export async function getSenderById(id: string) {
   return result.rows[0] ?? null;
 }
 
+export async function ensureDefaultSender(params: {
+  id: string;
+  smtpUser: string;
+  smtpPass: string;
+}) {
+  await pool.query(
+    `INSERT INTO senders (id, name, smtp_user, smtp_pass)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (id) DO UPDATE SET smtp_user = EXCLUDED.smtp_user, smtp_pass = EXCLUDED.smtp_pass`,
+    [params.id, "Ethereal Test Sender", params.smtpUser, params.smtpPass]
+  );
+}
+
 export async function rescheduleEmailJob(id: string, bullmqJobId: string, scheduledFor: Date) {
   await pool.query(
     `UPDATE email_jobs SET bullmq_job_id = $2, scheduled_for = $3 WHERE id = $1`,

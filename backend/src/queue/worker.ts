@@ -7,12 +7,25 @@ import {
   rescheduleEmailJob,
   getEmailJobById,
   getSenderById,
+  ensureDefaultSender,
 } from "../db/campaignRepo";
 import { tryConsumeRateLimit } from "./rateLimiter";
 import { emailQueue } from "./emailQueue";
 import { reconcileOnBoot } from "./reconcile";
+import { env } from "../config/env";
+
+const DEFAULT_SENDER_ID = "cd07bb53-c67e-4e31-8975-e3ba6d0f078c";
 
 async function startWorker() {
+  if (!env.etherealUser || !env.etherealPass) {
+    throw new Error("Missing required Ethereal credentials");
+  }
+
+  await ensureDefaultSender({
+    id: DEFAULT_SENDER_ID,
+    smtpUser: env.etherealUser,
+    smtpPass: env.etherealPass,
+  });
   await reconcileOnBoot();
 
   const worker = new Worker(
