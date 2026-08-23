@@ -27,6 +27,7 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
   const [recipientInput, setRecipientInput] = useState("");
   const [delayBetweenMs, setDelayBetweenMs] = useState(2000);
   const [maxEmailsPerHour, setMaxEmailsPerHour] = useState(100);
+  const [sendMode, setSendMode] = useState<"now" | "later">("now");
   const [startTime, setStartTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,15 +55,24 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
   }
 
   async function handleSubmit() {
-    if (!subject || !body || recipients.length === 0 || !startTime) {
-      showToast("Subject, body, recipients, and a start time are required.", "error");
+    if (!subject || !body || recipients.length === 0) {
+      showToast("Subject, body, and at least one recipient are required.", "error");
       return;
     }
 
-    const scheduledAt = new Date(startTime);
-    if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now()) {
-      showToast("Choose a start time in the future.", "error");
-      return;
+    let scheduledAtISO: string | undefined;
+
+    if (sendMode === "later") {
+      if (!startTime) {
+        showToast("Choose a start time, or switch to Send Now.", "error");
+        return;
+      }
+      const scheduledAt = new Date(startTime);
+      if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now()) {
+        showToast("Choose a start time in the future.", "error");
+        return;
+      }
+      scheduledAtISO = scheduledAt.toISOString();
     }
 
     setSubmitting(true);
@@ -80,8 +90,8 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
           senderId: SENDER_ID,
           delayBetweenMs,
           maxEmailsPerHour,
-          startTime: scheduledAt.toISOString(),
           recipients,
+          ...(scheduledAtISO ? { startTime: scheduledAtISO } : {}),
         }),
       });
 
@@ -114,7 +124,9 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
       <header className="flex items-center justify-between border-b border-border px-7 py-5 sm:px-10">
         <button onClick={onClose} className="text-2xl leading-none text-muted hover:text-foreground" aria-label="Close compose">←</button>
         <h2 className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold">Compose New Email</h2>
-        <Button onClick={handleSubmit} disabled={submitting}>{submitting ? "Scheduling..." : "Send Later"}</Button>
+        <Button onClick={handleSubmit} disabled={submitting}>
+          {submitting ? "Scheduling..." : sendMode === "now" ? "Send Now" : "Send Later"}
+        </Button>
       </header>
 
       <div className="mx-auto max-w-5xl px-7 py-8 sm:px-12">
@@ -155,10 +167,35 @@ export function ComposeModal({ onClose, onScheduled }: ComposeModalProps) {
           <Input id="subject" value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Subject" className="border-0 px-0 shadow-none focus:ring-0" />
         </div>
 
-        <div className="ml-[120px] flex flex-wrap gap-5 py-5">
-          <label className="text-sm">Start time
-            <Input type="datetime-local" min={localDateTimeValue()} value={startTime} onChange={(event) => setStartTime(event.target.value)} className="mt-1" />
-          </label>
+        <div className="ml-[120px] flex flex-wrap items-end gap-5 py-5">
+          <div className="text-sm">
+            <span className="block mb-1">When to send</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSendMode("now")}
+                className={`px-3 py-1.5 rounded-lg text-sm border ${
+                  sendMode === "now" ? "bg-primary text-white border-primary" : "border-border text-muted"
+                }`}
+              >
+                Now
+              </button>
+              <button
+                type="button"
+                onClick={() => setSendMode("later")}
+                className={`px-3 py-1.5 rounded-lg text-sm border ${
+                  sendMode === "later" ? "bg-primary text-white border-primary" : "border-border text-muted"
+                }`}
+              >
+                Later
+              </button>
+            </div>
+          </div>
+          {sendMode === "later" && (
+            <label className="text-sm">Start time
+              <Input type="datetime-local" min={localDateTimeValue()} value={startTime} onChange={(event) => setStartTime(event.target.value)} className="mt-1" />
+            </label>
+          )}
           <label className="text-sm">Delay between emails (ms)
             <Input type="number" min="1" value={delayBetweenMs} onChange={(event) => setDelayBetweenMs(Number(event.target.value))} className="mt-1 w-44" />
           </label>
